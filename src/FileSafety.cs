@@ -9,6 +9,9 @@ namespace HOPE5000TitleFix
 {
     internal static class FileSafety
     {
+        private const string Hope5000ProcessPrefix = "HOPE5000";
+        private const string ToolProcessPrefix = "HOPE5000TitleFix";
+
         internal static string NormalizePath(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -57,16 +60,25 @@ namespace HOPE5000TitleFix
         {
             List<string> names = new List<string>();
             Process[] processes = Process.GetProcesses();
+            int currentProcessId;
+            using (Process currentProcess = Process.GetCurrentProcess())
+            {
+                currentProcessId = currentProcess.Id;
+            }
+
             try
             {
                 foreach (Process process in processes)
                 {
                     try
                     {
-                        if (process.ProcessName.StartsWith("HOPE5000", StringComparison.OrdinalIgnoreCase) &&
-                            !names.Contains(process.ProcessName))
+                        string processName = process.ProcessName;
+                        if (process.Id != currentProcessId &&
+                            processName.StartsWith(Hope5000ProcessPrefix, StringComparison.OrdinalIgnoreCase) &&
+                            !processName.StartsWith(ToolProcessPrefix, StringComparison.OrdinalIgnoreCase) &&
+                            !names.Contains(processName))
                         {
-                            names.Add(process.ProcessName);
+                            names.Add(processName);
                         }
                     }
                     catch
