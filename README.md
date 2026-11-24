@@ -1,5 +1,9 @@
 # HOPE5000 标题热修复
 
+[修改前](https://raw.githubusercontent.com/SekiBetu/HOPE5000TitleFix/refs/heads/main/PixPin_2026-11-24_09-05-16.png)
+
+[修改后](https://raw.githubusercontent.com/SekiBetu/HOPE5000TitleFix/refs/heads/main/PixPin_2026-11-24_09-28-12.png)
+
 一个无需安装、无需 PowerShell、单文件运行的 [HOPE5000](https://www.holtek.com.cn/page/tool-detail/programmer/p_32/e-writerpro2_32) 修复工具。
 
 它修复 HOPE5000 在点击“自定义烧录/范围选择”后弹出子窗口时闪退的问题(KB5022502/KB5022503已修复此问题)，并允许把该子窗口的标题改成任意自定义名称。工具会自动备份原文件，可随时一键还原。
