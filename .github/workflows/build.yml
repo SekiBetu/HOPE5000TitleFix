@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        shell: cmd
+        run: build.cmd
+
+      - name: Smoke test embedded dependencies
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path ".\dist\HOPE5000TitleFix.exe").Path
+          $process = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Smoke test failed with exit code $($process.ExitCode)."
+          }
+
+      - name: Stage build artifact
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD "staging"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage "docs") | Out-Null
+
+          Copy-Item ".\dist\HOPE5000TitleFix.exe" $stage
+          Copy-Item -Path ".\README.md", ".\LICENSE", ".\THIRD-PARTY-NOTICES.txt", ".\CHANGELOG.md" -Destination $stage
+          Copy-Item -Path ".\docs\*" -Destination (Join-Path $stage "docs")
+
+          $hash = (Get-FileHash -LiteralPath (Join-Path $stage "HOPE5000TitleFix.exe") -Algorithm SHA256).Hash
+          "$hash  HOPE5000TitleFix.exe" |
+            Set-Content -LiteralPath (Join-Path $stage "SHA256SUMS.txt") -Encoding ascii
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOPE5000TitleFix-win
+          path: staging/
+          if-no-files-found: error
+          retention-days: 14
