@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        shell: cmd
+        run: build.cmd
+
+      - name: Smoke test embedded dependencies
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path ".\dist\HOPE5000TitleFix.exe").Path
+          $process = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Smoke test failed with exit code $($process.ExitCode)."
+          }
+
+      - name: Package release
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          .\package.ps1 -Tag $tag -SkipBuild
+
+          $packageName = "HOPE5000TitleFix-$tag-win"
+          $zipPath = Join-Path $PWD "release\$packageName.zip"
+          $checksums = Join-Path $PWD "release\SHA256SUMS.txt"
+
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "ZIP_PATH=$zipPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CHECKSUMS_PATH=$checksums" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        run: |
+          $tag = $env:RELEASE_TAG
+          $exe = (Resolve-Path ".\dist\HOPE5000TitleFix.exe").Path
+          gh release view $tag --json tagName 2>$null | Out-Null
+
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $env:ZIP_PATH $env:CHECKSUMS_PATH $exe --clobber
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to upload release assets."
+            }
+          }
+          else {
+            gh release create $tag $env:ZIP_PATH $env:CHECKSUMS_PATH $exe `
+              --title "HOPE5000TitleFix $tag" `
+              --generate-notes
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to create GitHub Release."
+            }
+          }
