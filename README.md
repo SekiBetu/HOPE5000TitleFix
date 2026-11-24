@@ -1,4 +1,4 @@
-# HOPE5000 标题热修复
+# HOPE5000 子窗口空标题闪退修复
 
 ![修改前](https://raw.githubusercontent.com/SekiBetu/HOPE5000TitleFix/refs/heads/main/PixPin_2026-11-24_09-05-16.png)
 
